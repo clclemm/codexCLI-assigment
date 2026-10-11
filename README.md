@@ -17,3 +17,16 @@ identified using the available variables. It will then compare sale rpeices whil
 - prompts/ - Prompts issued to Codex in chronological order
 - log/ - AI Workflow Log documenting codex outputs, analytical decisions, modifications, rejections and verification
 - `reflection.md` - Reflection on the Codex-directed analytical workflow
+
+## Running the analysis
+
+The anlysis was completed in R using the dataset located at `data/AmesHousing-1.csv`. 
+
+To reproduce the analysis: 
+
+1. Clone or download this repository
+2. Set the repository root (`codexCLI-assignment/`) as the R working directory
+3. Run `analysis/analysis.R` from beginning to end
+
+The analysis uses relative file paths, so the repository structure should be maintained when running the code. 
+The initial exploration uses base R and does not require additional packages.

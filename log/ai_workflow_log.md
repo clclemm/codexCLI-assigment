@@ -62,3 +62,51 @@ analysis, but remove pieces that did not add value to the question being investi
 checks were retained because they identified four observations that may affect how remodeling and home age are 
 defined later in the analysis. Using dataframe row numbers also makes those observations easier to inspect directly 
 in R. These changes made the script easier to follow while preserving the useful analysis Codex produced.
+
+## October 12
+
+### Prompt 3
+
+**What I asked:**  
+I asked Codex to continue the existing analysis in R using the decisions I made after reviewing the initial 
+exploration. I defined an older home as at least 35 years old at the time of sale and a recorded remodel as 
+`Year Remod/Add > Year Built`. I also instructed Codex to exclude the four types of temporal inconsistencies 
+identified during the initial exploration. I asked it to compare the number, percentage, and SalePrice of remodeled 
+and non-remodeled older homes and create a visualization of the SalePrice distributions. I specifically instructed 
+it not to begin regression modeling yet.
+
+**What Codex Produced:**  
+Codex reviewed the existing R script and added the requested analysis rather than recreating the earlier work. It 
+excluded 4 observations with temporal inconsistencies and identified 1,462 homes that were at least 35 years old at 
+sale. Of these, 606 (41.45%) were classified as not remodeled and 856 (58.55%) as remodeled. The median SalePrice was
+\$135,000 for non-remodeled homes and $131,000 for remodeled homes, while the mean prices were very similar at 
+\$137,306 and $137,158, respectively. Codex also created a boxplot comparing the SalePrice distributions.
+
+**Accepted:**  
+I accepted the definitions and filtering logic because they correctly reflected the analytical decisions provided 
+in the prompt. I also accepted the group comparison and boxplot. The results showed very little difference in mean 
+SalePrice between the two groups, although the remodeled group appeared to have greater variation in SalePrice in 
+the visualization.
+
+**Modified/Rejected:**  
+I added standard deviation to the SalePrice summary so that the difference in variation observed in the boxplot 
+could also be evaluated numerically. I removed the final block of code that programmatically constructed a written 
+summary of the results because it repeated information already available in the summary table and added unnecessary 
+complexity. 
+
+**Rationale:**  
+The primary analysis produced by Codex was correct and directly addressed the requested comparison. My modifications
+were intended to make the output more useful and keep the code appropriate for a small, one-time analysis. Some of 
+the generated code was more programmatic than necessary for a comparison of two fixed groups, but I retained it 
+where it was correct and understandable rather than rewriting working code solely for style. Adding standard 
+deviation supported an observation made while reviewing the visualization, while removing the generated narrative 
+reduced code that did not add analytical value. The tendency toward unnecessarily generalized code is something I 
+will address more explicitly in my next prompt.
+
+**Verification:**  
+I independently ran the updated script in RStudio and confirmed that it identified the same four temporally 
+inconsistent observations and reproduced the reported group sizes and SalePrice results. I manually verified that 
+the group counts sum to the total older-home sample (606 + 856 = 1,462) and that 856 / 1,462 = 58.55%, matching the
+reported percentage of remodeled homes. I also visually reviewed the boxplot and noted greater SalePrice variation 
+among the remodeled homes.
+

@@ -40,3 +40,41 @@ locations. If you can locate it, use that installation to run the R script witho
 
 If you cannot locate or execute R, stop and tell me what you found rather than calculating the requested results 
 in another language.
+
+# October 12
+
+## Prompt 3
+ I Am continuing an existing Ames Housing analysis in this repository. The analysis is being conducted in R. Before
+  making changes, review the existing `analysis/analysis.R` file so that you understand the work already completed.
+  Continue building on that script rather than recreating or replacing the existing analysis.
+
+  The analytical question is:
+  Among older homes, are remodeled homes associated with higher sale prices than comparable homes that have not been
+  remodeled
+
+  Based on the inital exploration, I have made the following analytical decisions:
+  - Define an "older home" as a home that was at least 35 years old at the time of sale, calculated as Yr Sold - Year
+  Built
+  - Define a home as having a recorded remodel when Year Remod/Add > Year Built
+  - Exclude observations with temporally inconsistent values where Year Built > Year Sold, Year Remod/Add < YEear
+  Built, or Year Remod/Add > Yr Sold
+
+  For this next step:
+  1. Creat the age-at-sale and recorded-remodel variable using the definitions above and filter the data to valid older
+  homes.
+  2. Report how many observations were excluded becauce of temporal inconsistencies and the final number of older homes
+  included.
+  3. Report the number and percentage of older homes classified as remodeled versus not remodeled.
+  4. Compare `SalePrice` between the remodeled and non-remodeled groups using descriptive statistics, including at
+  least the number of observations, median, sale price, and mean sale price for each group
+  5. Create one visualization comparing the `SalePrice` distributions of the two groups
+  6. Briefly summarize what the unadjusted comparison shows.
+
+  Do not fit a regression model yet. I want to review the group sized and unadjsuted comparison before deciding how to
+  account for differences between homes.
+
+  Add thsi work to the existing `analysis/analysis.R` file rather than replacing the inital exploration. Perform and
+  verify the analysis is in R
+
+  Use the existing coding approach where reasonable and avoid adding unnecceary defensive checks or generalized helper
+  functions. Do not use Python as a substitute for R.

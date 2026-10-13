@@ -111,3 +111,52 @@ if (length(problem_rows)) {
 
 # Equality may encode original condition or no recorded update; "different" establishes a different recorded year, 
 # but does not measure remodel scope.
+
+# Older-home comparison: exclude any record with a temporal inconsistency,
+# then retain homes at least 35 years old at sale. A remodel is recorded only
+# when Year Remod/Add is later than Year Built; equal years are classified as
+# not remodeled under this operational definition.
+temporal_inconsistent <-
+  (!is.na(build_year) & !is.na(sold_year) & build_year > sold_year) |
+  (!is.na(remod_year) & !is.na(build_year) & remod_year < build_year) |
+  (!is.na(remod_year) & !is.na(sold_year) & remod_year > sold_year)
+cat("\nUnique observations excluded for temporal inconsistencies:",
+    sum(temporal_inconsistent), "\n")
+
+ames$AgeAtSale <- sold_year - build_year
+ames$RecordedRemodel <- remod_year > build_year
+valid_older <- !temporal_inconsistent & !is.na(ames$AgeAtSale) &
+  ames$AgeAtSale >= 35 & !is.na(ames$RecordedRemodel)
+older_homes <- ames[valid_older, ]
+cat("Older homes included (age at sale >= 35 years):", nrow(older_homes), "\n")
+
+remodel_counts <- table(factor(older_homes$RecordedRemodel,
+                               levels = c(FALSE, TRUE),
+                               labels = c("Not remodeled", "Remodeled")))
+remodel_pct <- 100 * remodel_counts / nrow(older_homes)
+cat("\nOlder homes by recorded remodel status (count and percent):\n")
+print(data.frame(group = names(remodel_counts),
+                 n = as.integer(remodel_counts),
+                 percent = as.numeric(remodel_pct)),
+      row.names = FALSE, digits = 5)
+
+price_summary <- do.call(rbind, lapply(c(FALSE, TRUE), function(remodeled) {
+  prices <- older_homes$SalePrice[older_homes$RecordedRemodel == remodeled]
+  data.frame(group = if (remodeled) "Remodeled" else "Not remodeled",
+             n = length(prices), median_sale_price = median(prices),
+             mean_sale_price = mean(prices), sd_sale_price=sd(prices))
+}))
+cat("\nSalePrice descriptive statistics among older homes:\n")
+print(price_summary, row.names = FALSE)
+
+png(file.path("analysis", "older_home_saleprice_by_remodel.png"),
+    width = 900, height = 650, res = 130)
+par(mar = c(5, 5, 4, 1))
+boxplot(SalePrice ~ factor(RecordedRemodel,
+                           levels = c(FALSE, TRUE),
+                           labels = c("Not remodeled", "Remodeled")),
+        data = older_homes, col = c("gray80", "steelblue2"),
+        main = "Sale prices of older homes by recorded remodel status",
+        xlab = "Recorded remodel status", ylab = "SalePrice ($)")
+dev.off()
+cat("Saved visualization to analysis/older_home_saleprice_by_remodel.png\n")

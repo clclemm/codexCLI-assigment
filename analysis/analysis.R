@@ -160,3 +160,129 @@ boxplot(SalePrice ~ factor(RecordedRemodel,
         xlab = "Recorded remodel status", ylab = "SalePrice ($)")
 dev.off()
 cat("Saved visualization to analysis/older_home_saleprice_by_remodel.png\n")
+
+# Check candidate variables for an adjusted comparison. These checks describe
+# the variables only; no regression or transformation is applied here.
+candidate_variables <- c("SalePrice", "RecordedRemodel", "Gr Liv Area",
+                         "AgeAtSale", "Neighborhood")
+candidate_fields <- older_homes[candidate_variables]
+cat("\nCandidate variable types and missing-value counts in older_homes:\n")
+print(data.frame(
+  variable = candidate_variables,
+  class = vapply(candidate_fields, function(x) paste(class(x), collapse = "/"), character(1)),
+  storage_type = vapply(candidate_fields, typeof, character(1)),
+  missing_n = vapply(candidate_fields, function(x) sum(is.na(x)), integer(1)),
+  row.names = NULL
+), row.names = FALSE)
+
+cat("\nDescriptive statistics in older_homes:\n")
+print(data.frame(
+  variable = c("SalePrice", "Gr Liv Area", "AgeAtSale"),
+  minimum = c(min(older_homes$SalePrice), min(older_homes[["Gr Liv Area"]]), min(older_homes$AgeAtSale)),
+  median = c(median(older_homes$SalePrice), median(older_homes[["Gr Liv Area"]]), median(older_homes$AgeAtSale)),
+  mean = c(mean(older_homes$SalePrice), mean(older_homes[["Gr Liv Area"]]), mean(older_homes$AgeAtSale)),
+  maximum = c(max(older_homes$SalePrice), max(older_homes[["Gr Liv Area"]]), max(older_homes$AgeAtSale)),
+  sd = c(sd(older_homes$SalePrice), sd(older_homes[["Gr Liv Area"]]), sd(older_homes$AgeAtSale)),
+  row.names = NULL
+), row.names = FALSE, digits = 7)
+
+cat("\nOlder-home observations by Neighborhood:\n")
+print(table(older_homes$Neighborhood, useNA = "ifany"))
+
+# Compare centers and tails to assess skew and unusually large observations.
+cat("\nSalePrice five-number summary and upper-tail quantiles:\n")
+print(summary(older_homes$SalePrice))
+print(quantile(older_homes$SalePrice, c(0.90, 0.95, 0.99)))
+cat("\nGr Liv Area five-number summary and upper-tail quantiles:\n")
+print(summary(older_homes[["Gr Liv Area"]]))
+print(quantile(older_homes[["Gr Liv Area"]], c(0.90, 0.95, 0.99)))
+
+png(file.path("analysis", "older_home_price_size_distributions.png"),
+    width = 1100, height = 550, res = 130)
+par(mfrow = c(1, 2), mar = c(5, 4, 4, 1))
+hist(older_homes$SalePrice, breaks = "FD", col = "steelblue",
+     border = "white", main = "SalePrice among older homes",
+     xlab = "SalePrice ($)", ylab = "Number of homes")
+hist(older_homes[["Gr Liv Area"]], breaks = "FD", col = "darkseagreen3",
+     border = "white", main = "Above-ground living area",
+     xlab = "Gr Liv Area (sq ft)", ylab = "Number of homes")
+dev.off()
+cat("Saved visualization to analysis/older_home_price_size_distributions.png\n")
+
+# Multiple linear regression in original numeric units. Neighborhood is
+# categorical, so convert it to a factor before fitting the specified model.
+older_homes$Neighborhood <- factor(older_homes$Neighborhood)
+price_model <- lm(SalePrice ~ RecordedRemodel + `Gr Liv Area` + AgeAtSale +
+                    Neighborhood, data = older_homes)
+
+cat("\nSpecified multiple linear regression:\n")
+print(summary(price_model))
+cat("R-squared:", summary(price_model)$r.squared, "\n")
+cat("Adjusted R-squared:", summary(price_model)$adj.r.squared, "\n")
+
+remodel_result <- coef(summary(price_model))["RecordedRemodelTRUE", ]
+remodel_ci <- confint(price_model)["RecordedRemodelTRUE", ]
+cat("\nRecordedRemodel coefficient (TRUE versus FALSE):\n")
+print(data.frame(
+  coefficient = unname(remodel_result["Estimate"]),
+  standard_error = unname(remodel_result["Std. Error"]),
+  p_value = unname(remodel_result["Pr(>|t|)"]),
+  ci_95_lower = remodel_ci[1],
+  ci_95_upper = remodel_ci[2],
+  row.names = NULL
+), digits = 7, row.names = FALSE)
+
+# Basic diagnostics: residual pattern, residual normality, and influence.
+model_residuals <- residuals(price_model)
+model_fitted <- fitted(price_model)
+model_cooks <- cooks.distance(price_model)
+cook_cutoff <- 4 / nrow(older_homes)
+cat("\nCook's distance observations above 4/n (", cook_cutoff, "): ",
+    sum(model_cooks > cook_cutoff), "\n", sep = "")
+cat("Largest Cook's distances and corresponding older_homes row numbers:\n")
+largest_cooks <- order(model_cooks, decreasing = TRUE)[1:10]
+print(data.frame(row = largest_cooks,
+                 cooks_distance = model_cooks[largest_cooks]),
+      row.names = FALSE, digits = 6)
+
+png(file.path("analysis", "older_home_regression_diagnostics.png"),
+    width = 1500, height = 500, res = 130)
+par(mfrow = c(1, 3), mar = c(5, 4, 4, 1))
+plot(model_fitted, model_residuals,
+     xlab = "Fitted SalePrice", ylab = "Residuals",
+     main = "Residuals vs fitted", pch = 19, col = "steelblue")
+abline(h = 0, lty = 2, col = "gray40")
+qqnorm(model_residuals, main = "Q-Q plot of residuals", pch = 19,
+       col = "steelblue")
+qqline(model_residuals, col = "gray40", lty = 2)
+plot(model_cooks, type = "h", xlab = "Observation in older_homes",
+     ylab = "Cook's distance", main = "Cook's distance",
+     col = "steelblue")
+abline(h = cook_cutoff, lty = 2, col = "firebrick")
+dev.off()
+cat("Saved diagnostics to analysis/older_home_regression_diagnostics.png\n")
+
+# Sensitivity check only: retain the primary sample/model above, and refit the
+# same formula after excluding older_homes observation 488.
+cat("\nObservation 488 values (older_homes row):\n")
+print(older_homes[488, c("SalePrice", "RecordedRemodel", "Gr Liv Area",
+                         "AgeAtSale", "Neighborhood")], row.names = FALSE)
+
+older_homes_without_488 <- older_homes[-488, ]
+sensitivity_model <- lm(SalePrice ~ RecordedRemodel + `Gr Liv Area` + AgeAtSale +
+                          Neighborhood, data = older_homes_without_488)
+
+primary_remodel <- coef(summary(price_model))["RecordedRemodelTRUE", ]
+sensitivity_remodel <- coef(summary(sensitivity_model))["RecordedRemodelTRUE", ]
+model_comparison <- data.frame(
+  model = c("Primary model", "Sensitivity model (excluding row 488)"),
+  RecordedRemodel_coefficient = c(primary_remodel["Estimate"],
+                                  sensitivity_remodel["Estimate"]),
+  RecordedRemodel_p_value = c(primary_remodel["Pr(>|t|)"],
+                              sensitivity_remodel["Pr(>|t|)" ]),
+  R_squared = c(summary(price_model)$r.squared,
+                summary(sensitivity_model)$r.squared),
+  row.names = NULL
+)
+cat("\nPrimary and sensitivity model comparison:\n")
+print(model_comparison, digits = 7, row.names = FALSE)
